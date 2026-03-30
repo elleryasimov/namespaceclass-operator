@@ -21,17 +21,21 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	namespaceclassv1alpha1 "github.com/elleryasimov/namespaceclass-operator/api/v1alpha1"
 )
+
+const policyName = "namespaceclass-networkpolicy"
 
 // NamespaceClassReconciler reconciles a NamespaceClass object
 type NamespaceClassReconciler struct {
@@ -53,9 +57,37 @@ type NamespaceClassReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/reconcile
 func (r *NamespaceClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	logger := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var ns corev1.Namespace
+	if err := r.Get(ctx, req.NamespacedName, &ns); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	namespaceClassName, size := ns.Labels["namespaceclass.akuity.io/name"]
+	// should deal with clear logic
+	if !size || namespaceClassName == "" {
+		var networkPolicy networkingv1.NetworkPolicy
+		err := r.Get(ctx, types.NamespacedName{Name: policyName, Namespace: ns.Name}, &networkPolicy)
+
+		if err == nil {
+			if err := r.Delete(ctx, &networkPolicy); err != nil {
+				return ctrl.Result{}, err
+			}
+			logger.Info("Prune networkpolicy because namespaceclass label was removed", "ns", ns.Name)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	var namespaceClass namespaceclassv1alpha1.NamespaceClass
+	if err := r.Get(ctx, types.NamespacedName{Name: namespaceClassName}, &namespaceClass); err != nil {
+		logger.Error(err, "Failed to find referenced namespaceclass", "namespaceclass", namespaceClassName)
+		return ctrl.Result{}, err
+	}
+
+	if err := r.syncNetworkPolicy(ctx, &ns, &namespaceClass); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -91,4 +123,30 @@ func (r *NamespaceClassReconciler) mapProfileToNamespaces(ctx context.Context, o
 		}
 	}
 	return requests
+}
+
+func (r *NamespaceClassReconciler) syncNetworkPolicy(ctx context.Context, namespace *corev1.Namespace, namespaceclass *namespaceclassv1alpha1.NamespaceClass) error {
+	networkPolicy := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      policyName,
+			Namespace: namespace.Name,
+		},
+	}
+
+	// CreateOrUpdate will:
+	// 1. Check if it exists
+	// 2. If not, call the function to set it up and Create
+	// 3. If yes, call the function to update fields and Update
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, networkPolicy, func() error {
+		networkPolicy.Spec = networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			Ingress:     namespaceclass.Spec.IngressRules,
+			Egress:      namespaceclass.Spec.EgressRules,
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+		}
+
+		// IMPORTANT: Set the Namespace as the owner
+		return controllerutil.SetControllerReference(namespace, networkPolicy, r.Scheme)
+	})
+	return err
 }
