@@ -19,10 +19,16 @@ package controller
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	namespaceclassv1alpha1 "github.com/elleryasimov/namespaceclass-operator/api/v1alpha1"
 )
@@ -57,7 +63,32 @@ func (r *NamespaceClassReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&namespaceclassv1alpha1.NamespaceClass{}).
+		For(&corev1.Namespace{}).
 		Named("namespaceclass").
+		Watches(
+			&namespaceclassv1alpha1.NamespaceClass{},
+			handler.EnqueueRequestsFromMapFunc(r.mapProfileToNamespaces),
+		).
+		Owns(&networkingv1.NetworkPolicy{}).
 		Complete(r)
+}
+
+func (r *NamespaceClassReconciler) mapProfileToNamespaces(ctx context.Context, obj client.Object) []reconcile.Request {
+	namespaceClassName := obj.GetName()
+	var nsList corev1.NamespaceList
+
+	selector := labels.SelectorFromSet(labels.Set{"namespaceclass.akuity.io/name": namespaceClassName})
+	if err := r.List(ctx, &nsList, &client.ListOptions{LabelSelector: selector}); err != nil {
+		return nil
+	}
+
+	requests := make([]reconcile.Request, len(nsList.Items))
+	for i, ns := range nsList.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name: ns.Name,
+			},
+		}
+	}
+	return requests
 }
