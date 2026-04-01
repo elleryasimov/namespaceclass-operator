@@ -129,7 +129,7 @@ func (r *NamespaceClassReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		obj.SetLabels(map[string]string{"namespaceclass.akuity.io/name": nsClassName})
 		controllerutil.SetControllerReference(anchor, obj, r.Scheme)
 
-		// Use Server-Side Apply to "Force" the template's state
+		// Use Server-Side Apply
 		err := r.Patch(ctx, obj, client.Apply, client.FieldOwner("template-controller"), client.ForceOwnership)
 		if err != nil {
 			// Setup conditions
