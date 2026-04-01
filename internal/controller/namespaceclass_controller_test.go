@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -50,6 +51,11 @@ var _ = Describe("NamespaceClass Controller", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
+					},
+					Spec: namespaceclassv1alpha1.NamespaceClassSpec{
+						Resources: []runtime.RawExtension{
+							{Raw: []byte(`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"test-conf"},"data":{"key":"value"}}`)},
+						},
 					},
 					// TODO(user): Specify other spec details if needed.
 				}

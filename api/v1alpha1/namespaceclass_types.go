@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	networkingv1 "k8s.io/api/networking/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -31,8 +31,9 @@ type NamespaceClassSpec struct {
 
 	// Foo is an example field of NamespaceClass. Edit namespaceclass_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
-	IngressRules []networkingv1.NetworkPolicyIngressRule `json:"ingressRules,omitempty"`
-	EgressRules []networkingv1.NetworkPolicyEgressRule `json:"egressRules,omitempty"` 
+
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Resources []runtime.RawExtension `json:"resources"`
 }
 
 // NamespaceClassStatus defines the observed state of NamespaceClass.

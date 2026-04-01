@@ -4,20 +4,19 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
-  name: namespaceclasses.namespaceclass.akuity.io
+  name: namespaceclassproxies.namespaceclass.akuity.io
 spec:
   group: namespaceclass.akuity.io
   names:
-    kind: NamespaceClass
-    listKind: NamespaceClassList
-    plural: namespaceclasses
-    singular: namespaceclass
-  scope: Cluster
+    kind: NamespaceClassProxy
+    listKind: NamespaceClassProxyList
+    plural: namespaceclassproxies
+    singular: namespaceclassproxy
+  scope: Namespace
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: NamespaceClass is the Schema for the namespaceclasses API.
         properties:
           apiVersion:
             description: |-
@@ -36,27 +35,6 @@ spec:
             type: string
           metadata:
             type: object
-          spec:
-            description: NamespaceClassSpec defines the desired state of NamespaceClass.
-            properties:
-              foo:
-                description: Foo is an example field of NamespaceClass. Edit namespaceclass_types.go
-                  to remove/update
-                type: string
-              resources:
-                items:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                type: array
-                x-kubernetes-preserve-unknown-fields: true
-            required:
-            - resources
-            type: object
-          status:
-            description: NamespaceClassStatus defines the observed state of NamespaceClass.
-            type: object
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
