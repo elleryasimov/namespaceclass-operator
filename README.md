@@ -6,7 +6,11 @@ A NamespaceClass defines a set of complimentary resources, policies, etc... whic
 By introduction of the NamespaceClass CRD, you're able to define as more resources as you want into the `Resources` field, which, whenever refered to by a namespace with `namespaceclass.akuity.io/name` label, will automatically create the resources you defined.
 
 ## How it works
+[internal/controller/namespaceclass_controller.go]("internal/controller/namespaceclass_controller.go") 
+
 By introducing an anchor resource (a ConfigMap in the current implementation) and making all the created resources controller-referenced to it in a namespace, the resources can be gracefully deleted when the namespaceclass is unmounted from the namepace.
+
+![When a namespaceclass is attached to a namesapce](assets/nsclass_1.svg)
 
 
 ## Getting Started
