@@ -1,8 +1,13 @@
 # namespaceclass-operator
-// TODO(user): Add simple overview of use/purpose
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+A NamespaceClass defines a set of complimentary resources, policies, etc... which are additionally created and managed when a namespace is created from a certain class.
+
+By introduction of the NamespaceClass CRD, you're able to define as more resources as you want into the `Resources` field, which, whenever refered to by a namespace with `namespaceclass.akuity.io/name` label, will automatically create the resources you defined.
+
+## How it works
+By introducing an anchor resource (a ConfigMap in the current implementation) and making all the created resources controller-referenced to it in a namespace, the resources can be gracefully deleted when the namespaceclass is unmounted from the namepace.
+
 
 ## Getting Started
 
