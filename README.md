@@ -12,6 +12,11 @@ By introducing an anchor resource (a ConfigMap in the current implementation) an
 
 ![When a namespaceclass is attached to a namesapce](assets/nsclass_1.svg)
 
+### Switching classes
+On the class switching scenario, the old anchor is deleted, and a new anchor is created. With k8s' cascading deletion mechanism, the resources created by the switched-off namespace class will also be deleted.
+
+### Updating classes
+We use `r.Patch()` to update the resources when the resources on the template changes.
 
 ## Getting Started
 
